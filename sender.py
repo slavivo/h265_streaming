@@ -24,22 +24,20 @@ fps = 5
 # rtsp_server = 'rtsp://localhost:31415/live.stream'
 rtp_server = 'rtp://localhost:31415/live.stream'
 udp = "udp://239.0.0.1:1234?ttl=13"
+mplayer = "tcp://127.0.0.1:2000"
 # You will need to start the server up first, before the sending client (when using TCP). See: https://trac.ffmpeg.org/wiki/StreamingGuide#Pointtopointstreaming
 ffplay_process = sp.Popen([ffplay_cmd, 
     '-fflags', 'nobuffer', 
     '-flags', 'low_delay', 
-    '-strict', 'experimental', 
+    '-strict', 'experimental',
+    '-probesize' , '32',
+    '-sync', 'ext', 
     udp])  # Use FFplay sub-process for receiving the RTSP video.
 
-
 command = [ffmpeg_cmd,
-           '-f', 'rawvideo',  # Apply raw video as input - it's more efficient than encoding each frame to PNG
-           '-s', f'{img_width}x{img_height}',
-           '-pixel_format', 'bgr24',
+           # '-s', f'{img_width}x{img_height}',
            '-i', '-',
-           '-pix_fmt', 'yuv420p',
-           '-preset', 'medium',
-           '-profile', 'high',
+           '-preset', 'ultrafast',
            '-vcodec', 'libx264',
            '-minrate', '2000K',
            '-maxrate', '2000K',
@@ -52,7 +50,8 @@ process = sp.Popen(command, stdin=sp.PIPE)  # Execute FFmpeg sub-process for RTS
 
 while True:
     ret_val, img = cap.read()
-    process.stdin.write(img.tobytes())  # Write raw frame to stdin pipe.
+    process.stdin.write(cv2.imencode('.jpeg', img)[1])
+    # process.stdin.write(img.tobytes())  # Write raw frame to stdin pipe.
 
     key = cv2.waitKey(1)
     if key == ord("q"):
